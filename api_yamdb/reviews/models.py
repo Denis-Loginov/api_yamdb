@@ -1,6 +1,8 @@
 from django.db import models
 from datetime import datetime
+
 from .validators import validate_year
+from users.models import User
 
 
 class Genre(models.Model):
@@ -69,7 +71,7 @@ class Title(models.Model):
         verbose_name_plural = 'Произведения'
 
     def __str__(self):
-		return self.name
+	return self.name
 
 
 class Review(models.Model):
