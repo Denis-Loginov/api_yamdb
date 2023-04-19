@@ -4,11 +4,11 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 from .permissions import IsAdminOrReadOnly
 from .serializers import (
-	CategorySerializer, CommentSerializer,
-	GenreSerializer, ReviewSerializer,
-	TitleSerializer, TitleListSerializer
+    CategorySerializer, CommentSerializer,
+    GenreSerializer, ReviewSerializer,
+    TitleSerializer, TitleListSerializer
 )
-from reviews.models import Category, Comment, Genre, Review, Title
+from reviews.models import Category, Genre, Review, Title
 
 
 class ListCreateDestroyViewSet(
