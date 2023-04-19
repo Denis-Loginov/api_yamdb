@@ -1,8 +1,50 @@
-from rest_framework import viewsets
-from .serializers import CommentSerializer, ReviewSerializer
+from rest_framework import filters, mixins, viewsets
 from django.shortcuts import get_object_or_404
-from reviews.models import Review, Title
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
+
+from .permissions import IsAdminOrReadOnly
+from .serializers import (
+	CategorySerializer, CommentSerializer,
+	GenreSerializer, ReviewSerializer,
+	TitleSerializer, TitleListSerializer
+)
+from reviews.models import Category, Comment, Genre, Review, Title
+
+
+class ListCreateDestroyViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet
+):
+    pass
+
+
+class TitleViewSet(viewsets.ModelViewSet):
+    queryset = Title.objects.all()
+    serializer_class = TitleSerializer
+    permission_classes = (IsAdminOrReadOnly,)
+
+    def get_serializer_class(self):
+        if self.action in ('list', 'retrieve'):
+            return TitleListSerializer
+        return TitleSerializer
+
+
+class GenreViewSet(ListCreateDestroyViewSet):
+    queryset = Genre.objects.all()
+    serializer_class = GenreSerializer
+    permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
+
+
+class CategoryViewSet(ListCreateDestroyViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
