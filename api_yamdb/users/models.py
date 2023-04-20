@@ -11,6 +11,10 @@ class User(AbstractUser):
         (MODERATOR, 'Moderator'),
         (ADMIN, 'Admin'),
     ]
+    username = models.CharField(max_length=150)
+    email = models.CharField(max_length=254)
+    first_name = models.CharField(max_length=150)
+    last_name = models.CharField(max_length=150)
     role = models.CharField(
         max_length=2,
         choices=ROLE,

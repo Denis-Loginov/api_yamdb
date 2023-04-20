@@ -1,25 +1,22 @@
-# from django.shortcuts import render
-import datetime
 from django.core.mail import send_mail
 
-from datetime import date
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
-from django.conf import settings
-from django.utils.crypto import constant_time_compare, salted_hmac
-from django.utils.http import base36_to_int, int_to_base36
+from users.models import User
+from .tokens import get_tokens_for_user
+from .tokens import PasswordResetTokenGenerator
+from .serializers import UserSerializer
 
 
 app_name = 'users'
 
-
-def make_token(self, user):
-    return self._make_token_with_timestamp(user, self._num_days(self._today()))
+token = PasswordResetTokenGenerator.make_token()
 
 
 def send_mail(request):
-    if request.method == 'POST':
-        to_email = request.POST['email']
-    token = make_token()
+    # if request.method == 'POST':
+    to_email = request.POST['email']
     send_mail(
         'Регистрация YaMDB',
         f'Ваш код подтверждения для регистрации на YaMDB:{token}',
@@ -27,3 +24,43 @@ def send_mail(request):
         to_email,  # Это поле "Кому" (можно указать список адресов)
         fail_silently=False
     )
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def perform_create(request, serializer):
+        if request.user.role == 'ADMIN':
+            serializer.save()
+
+
+class UserMeViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def perform_create(request, serializer):
+        if request.user.role == 'USER':
+            serializer.save()
+
+
+class AuthViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def perform_create(request, serializer):
+        if request.method == 'POST':
+            send_mail()
+            serializer.save(confirmation_code=token)
+
+
+class AuthCreateTokenViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def perform_create(self, serializer):
+        return get_tokens_for_user()

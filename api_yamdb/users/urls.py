@@ -1,7 +1,12 @@
 from django.urls import path
+from .views import (
+    AuthCreateTokenViewSet, AuthViewSet, UserViewSet, UserMeViewSet
+)
 
-from . import views
 
 urlpatterns = [
-    path('signup/', views.send_mail, name='send_mail'),
+    path('', UserViewSet),
+    path('me/', UserMeViewSet),
+    path('signup/', AuthViewSet),
+    path('token/', AuthCreateTokenViewSet),
 ]
