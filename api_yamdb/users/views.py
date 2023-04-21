@@ -1,7 +1,7 @@
 from django.core.mail import send_mail
 
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, AllowAny
 
 from users.models import User
 from .tokens import get_tokens_for_user
@@ -11,7 +11,7 @@ from .serializers import UserSerializer
 
 app_name = 'users'
 
-token = PasswordResetTokenGenerator.make_token()
+chekcode = PasswordResetTokenGenerator.make_token()
 
 
 def send_mail(request):
@@ -19,7 +19,7 @@ def send_mail(request):
     to_email = request.POST['email']
     send_mail(
         'Регистрация YaMDB',
-        f'Ваш код подтверждения для регистрации на YaMDB:{token}',
+        f'Ваш код подтверждения для регистрации на YaMDB:{chekcode}',
         'from@example.com',  # Это поле "От кого"
         to_email,  # Это поле "Кому" (можно указать список адресов)
         fail_silently=False
@@ -49,15 +49,15 @@ class UserMeViewSet(viewsets.ModelViewSet):
 class AuthViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [AllowAny]
 
     def perform_create(request, serializer):
         if request.method == 'POST':
             send_mail()
-            serializer.save(confirmation_code=token)
+            serializer.save(confirmation_code=chekcode)
 
 
-class AuthCreateTokenViewSet(viewsets.ModelViewSet):
+class TokenViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
