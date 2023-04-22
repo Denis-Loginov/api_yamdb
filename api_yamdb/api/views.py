@@ -1,32 +1,28 @@
 from django.contrib.auth import get_user_model
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
-
-from rest_framework import status, viewsets
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, mixins, status, viewsets
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .permissions import IsAdminOrModeratirOrAuthor, IsAdminOrSuperUser
+from reviews.models import Category, Comment, Genre, Review, Title
+from .filters import TitleFilter
+from .permissions import (
+    IsAdminOrReadOnly, IsAdminOrSuperUser, IsStaffOrAuthorOrReadOnly
+)
 from .serializers import (
-    CommentSerializer, ReviewSerializer, TokenSerializer,
-    SignUpSerializer, UserSerializer, AuthorSerializer)
-
-from api.utils import generate_confirmation_code, send_confirmation_code
-from reviews.models import Review, Title
-from users.models import User
-
+    AuthorSerializer, CategorySerializer,
+    CommentSerializer, GenreSerializer,
+    ReviewSerializer, SignUpSerializer,
+    TitleListSerializer, TitleSerializer,
+    TokenSerializer, UserSerializer,
+)
+from .utils import generate_confirmation_code, send_confirmation_code
 
 User = get_user_model()
-
-
-from .permissions import IsAdminOrReadOnly
-from .serializers import (
-    CategorySerializer, CommentSerializer,
-    GenreSerializer, ReviewSerializer,
-    TitleSerializer, TitleListSerializer
-)
-from reviews.models import Category, Genre, Review, Title
 
 
 class ListCreateDestroyViewSet(
@@ -35,13 +31,20 @@ class ListCreateDestroyViewSet(
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet
 ):
-    pass
+    permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
+    lookup_field = 'slug'
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    queryset = Title.objects.all()
-    serializer_class = TitleSerializer
+    queryset = (
+        Title.objects.all()
+        .annotate(rating=Avg("review__score")).order_by('id')
+    )
     permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = TitleFilter
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
@@ -52,68 +55,83 @@ class TitleViewSet(viewsets.ModelViewSet):
 class GenreViewSet(ListCreateDestroyViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    permission_classes = (IsAdminOrReadOnly,)
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
 
 
 class CategoryViewSet(ListCreateDestroyViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = (IsAdminOrReadOnly,)
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
-    permission_classes = [IsAdminOrModeratirOrAuthor, ]
+    permission_classes = (IsStaffOrAuthorOrReadOnly,)
 
     def get_queryset(self):
         title = get_object_or_404(Title, pk=self.kwargs.get("title_id"))
-        return title.reviews.all()
+        return Review.objects.filter(title=title)
 
     def perform_create(self, serializer):
-        title = get_object_or_404(Title, id=self.kwargs.get('title_id'))
+        title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
         serializer.save(author=self.request.user, title=title)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
+    permission_classes = (IsStaffOrAuthorOrReadOnly,)
 
     def get_queryset(self):
-        review = get_object_or_404(Review, pk=self.kwargs.get("review_id"))
-        return review.comments.all()
+        review = get_object_or_404(
+            Review,
+            pk=self.kwargs.get('review_id'),
+            title=self.kwargs.get('title_id'),
+        )
+        return Comment.objects.filter(review=review)
 
     def perform_create(self, serializer):
-        title_id = self.kwargs.get('title_id')
-        review_id = self.kwargs.get('review_id')
-        review = get_object_or_404(Review, id=review_id, title=title_id)
+        review = get_object_or_404(
+            Review,
+            pk=self.kwargs.get('review_id'),
+            title=self.kwargs.get('title_id'),
+        )
         serializer.save(author=self.request.user, review=review)
 
 
 class RegisterView(APIView):
-    """Регистирирует пользователя и отправляет ему код подтверждения."""
-    permission_classes = (AllowAny,)
+    """Регистрирует пользователя и отправляет ему код подтверждения."""
 
     def post(self, request):
         serializer = SignUpSerializer(data=request.data)
-        serializer.is_valid()
-        email = serializer.validated_data.get('email')
-        username = serializer.validated_data.get('username')
-        if serializer.is_valid():
-            confirmation_code = generate_confirmation_code()
-            user = User.objects.filter(email=email).exists()
-            if not user:
-                User.objects.create_user(email=email, username=username)
-                User.objects.filter(email=email).update(
-                    confirmation_code=generate_confirmation_code())
-                send_confirmation_code(email, confirmation_code)
-                return Response(serializer.data, status=status.HTTP_200_OK)
+        if not serializer.is_valid():
             return Response(
-                'Такой пользователь уже зарегистирован',
-                status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            )
+        username = serializer.validated_data.get("username")
+        email = serializer.validated_data.get("email")
+        is_user_exists = User.objects.filter(username=username).exists()
+        is_email_exists = User.objects.filter(email=email).exists()
+
+        if not (is_user_exists and is_email_exists):
+            if is_user_exists:
+                return Response(
+                    {"detail": "Пользователь с таким именем уже существует"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if is_email_exists:
+                return Response(
+                    {"detail": "Пользователь с таким email уже существует"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        user, created = User.objects.get_or_create(
+            username=username, email=email
+        )
+        confirmation_code = generate_confirmation_code()
+        send_confirmation_code(email, confirmation_code)
+        return Response(
+            {
+                "email": user.email,
+                "username": user.username,
+            }
+        )
 
 
 class TokenView(APIView):
@@ -147,7 +165,9 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [IsAdminOrSuperUser, ]
     lookup_field = 'username'
-    search_fields = ('username', )
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('username',)
+    http_method_names = ["get", "post", "patch", "delete"]
 
 
 class MeView(APIView):

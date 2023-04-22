@@ -1,14 +1,17 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-ROLE_CHOICES = (
-    ('user', 'user'),
-    ('moderator', 'moderator'),
-    ('admin', 'admin'),
-)
-
 
 class User(AbstractUser):
+    ADMIN = 'admin'
+    MODERATOR = 'moderator'
+    USER = 'user'
+    ROLE_CHOICES = (
+        (ADMIN, ADMIN),
+        (MODERATOR, MODERATOR),
+        (USER, USER),
+    )
+
     username: str = models.CharField(
         'Username',
         unique=True,
@@ -64,4 +67,3 @@ class User(AbstractUser):
     @property
     def is_moderator(self):
         return self.role == self.MODERATOR
-
