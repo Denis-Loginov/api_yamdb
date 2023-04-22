@@ -18,20 +18,17 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
-    'users.apps.UsersConfig',
-    'api.apps.ApiConfig',
-    'reviews.apps.ReviewsConfig',
     'django.contrib.admin',
     'django.contrib.auth',
-    'rest_framework',
-    'rest_framework_simplejwt',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'reviews.apps.ReviewsConfig',
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'users.apps.UsersConfig',
     'api.apps.ApiConfig',
-    'rest_framework', # 2 раза прописан
+    'reviews.apps.ReviewsConfig',
 ]
 
 MIDDLEWARE = [
@@ -112,6 +109,8 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 STATICFILES_DIRS = ((BASE_DIR / 'static/'),)
+
+CSV_DATA_DIR = STATICFILES_DIRS[0] / 'data/'
 
 AUTH_USER_MODEL = 'users.User'
 
