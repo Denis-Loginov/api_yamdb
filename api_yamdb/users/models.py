@@ -42,10 +42,10 @@ class User(AbstractUser):
         choices=ROLE_CHOICES,
         default='user'
     )
-    confirmation_code: str = models.CharField(
-        max_length=5, null=True,
-        verbose_name='Код подтверждения'
-    )
+    # confirmation_code: str = models.CharField(
+    #     max_length=10, null=True,
+    #     verbose_name='Код подтверждения'
+    # )
 
     class Meta:
         ordering = ('id',)
