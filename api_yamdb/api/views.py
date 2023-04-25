@@ -17,7 +17,7 @@ from .serializers import (
     AuthorSerializer, CategorySerializer,
     CommentSerializer, GenreSerializer,
     ReviewSerializer, SignUpSerializer,
-    TitleListSerializer, TitleSerializer,
+    TitleReadSerializer, TitleWriteSerializer,
     TokenSerializer, UserSerializer,
 )
 from .utils import generate_confirmation_code, send_confirmation_code
@@ -31,6 +31,10 @@ class ListCreateDestroyViewSet(
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet
 ):
+    pass
+
+
+class CategoryGenreViewSet(ListCreateDestroyViewSet):
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
@@ -40,7 +44,7 @@ class ListCreateDestroyViewSet(
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = (
         Title.objects.all()
-        .annotate(rating=Avg("review__score")).order_by('id')
+        .annotate(rating=Avg('review__score')).order_by('id')
     )
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
@@ -48,16 +52,16 @@ class TitleViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
-            return TitleListSerializer
-        return TitleSerializer
+            return TitleReadSerializer
+        return TitleWriteSerializer
 
 
-class GenreViewSet(ListCreateDestroyViewSet):
+class GenreViewSet(CategoryGenreViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
 
 
-class CategoryViewSet(ListCreateDestroyViewSet):
+class CategoryViewSet(CategoryGenreViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
