@@ -18,7 +18,7 @@ from .serializers import (
     AuthorSerializer, CategorySerializer,
     CommentSerializer, GenreSerializer,
     ReviewSerializer, SignUpSerializer,
-    TitleReadSerializer, TitleWriteSerializer,
+    TitleListSerializer, TitleSerializer,
     TokenSerializer, UserSerializer,
 )
 from .utils import generate_confirmation_code, send_confirmation_code
@@ -32,10 +32,6 @@ class ListCreateDestroyViewSet(
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet
 ):
-    pass
-
-
-class CategoryGenreViewSet(ListCreateDestroyViewSet):
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
@@ -45,7 +41,7 @@ class CategoryGenreViewSet(ListCreateDestroyViewSet):
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = (
         Title.objects.all()
-        .annotate(rating=Avg('review__score')).order_by('id')
+        .annotate(rating=Avg("review__score")).order_by('id')
     )
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
@@ -53,16 +49,16 @@ class TitleViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
-            return TitleReadSerializer
-        return TitleWriteSerializer
+            return TitleListSerializer
+        return TitleSerializer
 
 
-class GenreViewSet(CategoryGenreViewSet):
+class GenreViewSet(ListCreateDestroyViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
 
 
-class CategoryViewSet(CategoryGenreViewSet):
+class CategoryViewSet(ListCreateDestroyViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
@@ -158,13 +154,11 @@ class UserViewSet(viewsets.ModelViewSet):
         url_path='me',)
     def me(self, request):
         if request.user.is_authenticated:
-            user = get_object_or_404(User, id=request.user.id)
-            serializer = UserSerializer(user)
+            serializer = UserSerializer(request.user)
             return Response(serializer.data)
         return Response(
             'Вы не авторизованы',
             status=status.HTTP_401_UNAUTHORIZED)
-
 
     @me.mapping.patch
     def patch(self, request):
