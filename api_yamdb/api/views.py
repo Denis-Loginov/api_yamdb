@@ -151,12 +151,8 @@ class UserViewSet(viewsets.ModelViewSet):
     search_fields = ('username',)
     http_method_names = ["get", "post", "patch", "delete"]
 
-
-class MeView(APIView):
-    """Пользователь может посмотреть свой профиль и изменить его"""
-
-    @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
-    def get(self, request):
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated], url_path='me',)
+    def me(self, request):
         if request.user.is_authenticated:
             user = get_object_or_404(User, id=request.user.id)
             serializer = UserSerializer(user)
@@ -165,8 +161,8 @@ class MeView(APIView):
             'Вы не авторизованы',
             status=status.HTTP_401_UNAUTHORIZED)
 
-    @action(
-        detail=True, methods=['patch'], permission_classes=[IsAuthenticated])
+
+    @me.mapping.patch
     def patch(self, request):
         user = get_object_or_404(User, id=request.user.id)
         if request.user.role == 'admin':
@@ -182,7 +178,7 @@ class MeView(APIView):
                 user,
                 data=request.data,
                 partial=True)
-            if serializer.is_valid():
+            if serializer.is_valid(raise_exception=True):
                 serializer.save()
                 return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(
