@@ -9,6 +9,7 @@ class TitleAdmin(admin.ModelAdmin):
     list_filter = ('category', 'genre', 'year')
     search_fields = ('name', 'year', 'description')
     filter_horizontal = ('genre',)
+    list_select_related = ('genre',)
 
     @admin.display(description='Жанр')
     def get_genres(self, obj):

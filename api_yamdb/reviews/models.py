@@ -15,7 +15,10 @@ class Category(models.Model):
         max_length=256,
         verbose_name='Название категории',
     )
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(
+        unique=True,
+        verbose_name='Идентификатор категории',
+    )
 
     class Meta:
         ordering = ('name', 'slug')
@@ -32,7 +35,10 @@ class Genre(models.Model):
         max_length=256,
         verbose_name='Название жанра',
     )
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(
+        unique=True,
+        verbose_name='Идентификатор жанра',
+    )
 
     class Meta:
         ordering = ('name', 'slug')
@@ -82,7 +88,6 @@ class Title(models.Model):
 
 class GenreTitle(models.Model):
     """Модель жанров и произведений."""
-
     title = models.ForeignKey(
         Title, verbose_name="Произведение", on_delete=models.CASCADE
     )
@@ -120,7 +125,12 @@ class Review(models.Model):
         ordering = ['-pub_date']
         verbose_name = 'Отзыв'
         verbose_name_plural = 'Отзывы'
-        unique_together = ('author', 'title')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['title', 'author'],
+                name='unique_review'
+            ),
+        ]
 
     def __str__(self):
         return self.text

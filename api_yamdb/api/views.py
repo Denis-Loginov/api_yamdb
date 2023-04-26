@@ -18,7 +18,7 @@ from .serializers import (
     AuthorSerializer, CategorySerializer,
     CommentSerializer, GenreSerializer,
     ReviewSerializer, SignUpSerializer,
-    TitleListSerializer, TitleSerializer,
+    TitleReadSerializer, TitleWriteSerializer,
     TokenSerializer, UserSerializer,
 )
 from .utils import generate_confirmation_code, send_confirmation_code
@@ -32,6 +32,10 @@ class ListCreateDestroyViewSet(
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet
 ):
+    pass
+
+
+class CategoryGenreViewSet(ListCreateDestroyViewSet):
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
@@ -41,7 +45,7 @@ class ListCreateDestroyViewSet(
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = (
         Title.objects.all()
-        .annotate(rating=Avg("review__score")).order_by('id')
+        .annotate(rating=Avg('review__score')).order_by('id')
     )
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
@@ -49,16 +53,16 @@ class TitleViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
-            return TitleListSerializer
-        return TitleSerializer
+            return TitleReadSerializer
+        return TitleWriteSerializer
 
 
-class GenreViewSet(ListCreateDestroyViewSet):
+class GenreViewSet(CategoryGenreViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
 
 
-class CategoryViewSet(ListCreateDestroyViewSet):
+class CategoryViewSet(CategoryGenreViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
@@ -147,22 +151,20 @@ class UserViewSet(viewsets.ModelViewSet):
     search_fields = ('username',)
     http_method_names = ["get", "post", "patch", "delete"]
 
-
-class MeView(APIView):
-    """Пользователь может посмотреть свой профиль и изменить его"""
-
-    @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
-    def get(self, request):
+    @action(
+        detail=False,
+        methods=['get'],
+        permission_classes=[IsAuthenticated],
+        url_path='me',)
+    def me(self, request):
         if request.user.is_authenticated:
-            user = get_object_or_404(User, id=request.user.id)
-            serializer = UserSerializer(user)
+            serializer = UserSerializer(request.user)
             return Response(serializer.data)
         return Response(
             'Вы не авторизованы',
             status=status.HTTP_401_UNAUTHORIZED)
 
-    @action(
-        detail=True, methods=['patch'], permission_classes=[IsAuthenticated])
+    @me.mapping.patch
     def patch(self, request):
         user = get_object_or_404(User, id=request.user.id)
         if request.user.role == 'admin':
@@ -178,7 +180,7 @@ class MeView(APIView):
                 user,
                 data=request.data,
                 partial=True)
-            if serializer.is_valid():
+            if serializer.is_valid(raise_exception=True):
                 serializer.save()
                 return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(

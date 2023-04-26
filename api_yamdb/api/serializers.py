@@ -54,7 +54,6 @@ class SignUpSerializer(serializers.ModelSerializer):
 class TokenSerializer(serializers.ModelSerializer):
     """Проверяет наличие username и валидирует
        код подтверждения."""
-
     username = serializers.RegexField(
         regex=r'^[\w.@+-]',
         max_length=150,
@@ -94,7 +93,6 @@ class TokenSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     """Сериализатор для кастомной модели пользователя"""
-
     username = serializers.RegexField(
         regex=r'^[\w.@+-]',
         max_length=150,
@@ -117,7 +115,6 @@ class UserSerializer(serializers.ModelSerializer):
 
 class AuthorSerializer(serializers.ModelSerializer):
     """Сериализатор для изменения профиля автором"""
-
     username = serializers.RegexField(
         regex=r'^[\w.@+-]',
         max_length=150,
@@ -143,7 +140,7 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ('name', 'slug')
 
 
-class TitleSerializer(serializers.ModelSerializer):
+class TitleWriteSerializer(serializers.ModelSerializer):
     genre = serializers.SlugRelatedField(
         queryset=Genre.objects.all(),
         slug_field='slug',
@@ -159,7 +156,7 @@ class TitleSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class TitleListSerializer(serializers.ModelSerializer):
+class TitleReadSerializer(serializers.ModelSerializer):
     rating = serializers.IntegerField(read_only=True)
     genre = GenreSerializer(many=True, read_only=True)
     category = CategorySerializer(read_only=True)
@@ -171,10 +168,6 @@ class TitleListSerializer(serializers.ModelSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     """Сериализатор моделей комментариев."""
-    review = serializers.SlugRelatedField(
-        slug_field='text',
-        read_only=True
-    )
     author = serializers.SlugRelatedField(
         read_only=True,
         slug_field='username'
@@ -182,14 +175,11 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = '__all__'
+        fields = ('id', 'text', 'author', 'pub_date')
 
 
 class ReviewSerializer(serializers.ModelSerializer):
-    title = serializers.SlugRelatedField(
-        slug_field='name',
-        read_only=True,
-    )
+    """Сериализатор моделей отзывов."""
     author = serializers.SlugRelatedField(
         default=serializers.CurrentUserDefault(),
         slug_field='username',
@@ -198,7 +188,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Review
-        fields = '__all__'
+        fields = ('id', 'text', 'author', 'score', 'pub_date')
 
     def validate_score(self, value):
         if 0 > value > 10:
