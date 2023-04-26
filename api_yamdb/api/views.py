@@ -14,7 +14,7 @@ from .filters import TitleFilter
 from .permissions import (
     IsAdminOrReadOnly, IsAdminOrSuperUser, IsStaffOrAuthorOrReadOnly
 )
-from .serializers import (
+from api.serializers import (
     AuthorSerializer, CategorySerializer,
     CommentSerializer, GenreSerializer,
     ReviewSerializer, SignUpSerializer,
