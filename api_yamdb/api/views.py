@@ -151,7 +151,11 @@ class UserViewSet(viewsets.ModelViewSet):
     search_fields = ('username',)
     http_method_names = ["get", "post", "patch", "delete"]
 
-    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated], url_path='me',)
+    @action(
+        detail=False,
+        methods=['get'],
+        permission_classes=[IsAuthenticated],
+        url_path='me',)
     def me(self, request):
         if request.user.is_authenticated:
             user = get_object_or_404(User, id=request.user.id)
