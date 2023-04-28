@@ -113,7 +113,7 @@ class UserSerializer(serializers.ModelSerializer):
             'bio', 'role',)
 
 
-class AuthorSerializer(serializers.ModelSerializer):
+class UserMeSerializer(serializers.ModelSerializer):
     """Сериализатор для изменения профиля автором"""
     username = serializers.RegexField(
         regex=r'^[\w.@+-]',
@@ -124,8 +124,7 @@ class AuthorSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             'username', 'email', 'first_name',
-            'last_name', 'bio', 'role')
-        read_only_fields = ('role',)
+            'last_name', 'bio')
 
 
 class GenreSerializer(serializers.ModelSerializer):

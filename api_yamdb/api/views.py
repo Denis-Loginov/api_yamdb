@@ -15,11 +15,9 @@ from .permissions import (
     IsAdminOrReadOnly, IsAdminOrSuperUser, IsStaffOrAuthorOrReadOnly
 )
 from .serializers import (
-    AuthorSerializer, CategorySerializer,
-    CommentSerializer, GenreSerializer,
-    ReviewSerializer, SignUpSerializer,
-    TitleReadSerializer, TitleWriteSerializer,
-    TokenSerializer, UserSerializer,
+    CategorySerializer, CommentSerializer, GenreSerializer, ReviewSerializer,
+    SignUpSerializer, TitleReadSerializer, TitleWriteSerializer,
+    TokenSerializer, UserSerializer, UserMeSerializer
 )
 from .utils import generate_confirmation_code, send_confirmation_code
 
@@ -157,32 +155,19 @@ class UserViewSet(viewsets.ModelViewSet):
         permission_classes=[IsAuthenticated],
         url_path='me',)
     def me(self, request):
-        if request.user.is_authenticated:
-            serializer = UserSerializer(request.user)
-            return Response(serializer.data)
-        return Response(
-            'Вы не авторизованы',
-            status=status.HTTP_401_UNAUTHORIZED)
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data)
 
     @me.mapping.patch
     def patch(self, request):
         user = get_object_or_404(User, id=request.user.id)
-        if request.user.role == 'admin':
-            serializer = UserSerializer(
-                user,
-                data=request.data,
-                partial=True)
-            if serializer.is_valid(raise_exception=True):
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_200_OK)
-        else:
-            serializer = AuthorSerializer(
-                user,
-                data=request.data,
-                partial=True)
-            if serializer.is_valid(raise_exception=True):
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_200_OK)
+        serializer = UserMeSerializer(
+            user,
+            data=request.data,
+            partial=True)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(
             serializer.errors,
             status=status.HTTP_400_BAD_REQUEST)
